@@ -58,11 +58,11 @@ class DataEnhancement(object):
             hlsImg = cv2.cvtColor(image.astype(np.float32) / 255.0, cv2.COLOR_BGR2HLS)
 
             # 调整亮度
-            hlsImg[:, :, 1] = (1.0 + randint(self.lightness) / float(100)) * hlsImg[:, :, 1]
+            hlsImg[:, :, 1] = (randint(1.0, self.lightness) / float(100)) * hlsImg[:, :, 1]
             hlsImg[:, :, 1][hlsImg[:, :, 1] > 1] = 1
 
             # 饱和度
-            hlsImg[:, :, 2] = (1.0 + randint(self.saturation) / float(100)) * hlsImg[:, :, 2]
+            hlsImg[:, :, 2] = (randint(1.0, self.saturation) / float(100)) * hlsImg[:, :, 2]
             hlsImg[:, :, 2][hlsImg[:, :, 2] > 1] = 1
 
             image = cv2.cvtColor(hlsImg, cv2.COLOR_HLS2BGR) * 255
