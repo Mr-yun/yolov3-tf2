@@ -34,7 +34,7 @@ def random_annotation(val_split):
 
 
 def create_model(input_shape, num_classes,
-                 weights_path='./model_data/yolo_weights.h5'):
+                 weights_path='./yolov3/model_data/yolo_weights.h5'):
     num_anchors = len(defaul_anchors)
     # input_tensor = tf.keras.layers.Input(INPUT_SHAPE)
     h, w = input_shape[:2]
