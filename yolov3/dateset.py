@@ -1,5 +1,5 @@
 from os import path
-from random import random, uniform
+from random import random, uniform, randint
 
 import cv2
 import numpy as np
@@ -13,11 +13,16 @@ class DataEnhancement(object):
     数据增强
     '''
 
-    def __init__(self, train_input_shape):
+    def __init__(self, train_input_shape, lightness=10., saturation=20.):
         self.train_input_shape = train_input_shape
+        self.lightness = lightness
+        self.saturation = saturation
+
+    def rand(slef, a=0, b=1):
+        return np.random.rand() * (b - a) + a
 
     def random_horizontal_flip(self, image, bboxes):
-
+        # 镜像翻转
         if random() < 0.5:
             _, w, _ = image.shape
             image = image[:, ::-1, :]
@@ -26,7 +31,7 @@ class DataEnhancement(object):
         return image, bboxes
 
     def random_crop(self, image, bboxes):
-
+        '''随机裁剪'''
         if random() < 0.5:
             h, w, _ = image.shape
             max_bbox = np.concatenate([np.min(bboxes[:, 0:2], axis=0), np.max(bboxes[:, 2:4], axis=0)], axis=-1)
@@ -49,25 +54,19 @@ class DataEnhancement(object):
         return image, bboxes
 
     def random_translate(self, image, bboxes):
-
         if random() < 0.5:
-            h, w, _ = image.shape
-            max_bbox = np.concatenate([np.min(bboxes[:, 0:2], axis=0), np.max(bboxes[:, 2:4], axis=0)], axis=-1)
+            hlsImg = cv2.cvtColor(image.astype(np.float32) / 255.0, cv2.COLOR_BGR2HLS)
 
-            max_l_trans = max_bbox[0]
-            max_u_trans = max_bbox[1]
-            max_r_trans = w - max_bbox[2]
-            max_d_trans = h - max_bbox[3]
+            # 调整亮度
+            hlsImg[:, :, 1] = (1.0 + randint(self.lightness) / float(100)) * hlsImg[:, :, 1]
+            hlsImg[:, :, 1][hlsImg[:, :, 1] > 1] = 1
 
-            tx = uniform(-(max_l_trans - 1), (max_r_trans - 1))
-            ty = uniform(-(max_u_trans - 1), (max_d_trans - 1))
+            # 饱和度
+            hlsImg[:, :, 2] = (1.0 + randint(self.saturation) / float(100)) * hlsImg[:, :, 2]
+            hlsImg[:, :, 2][hlsImg[:, :, 2] > 1] = 1
 
-            M = np.array([[1, 0, tx], [0, 1, ty]])
-            image = cv2.warpAffine(image, M, (w, h))
-
-            bboxes[:, [0, 2]] = bboxes[:, [0, 2]] + tx
-            bboxes[:, [1, 3]] = bboxes[:, [1, 3]] + ty
-
+            image = cv2.cvtColor(hlsImg, cv2.COLOR_HLS2BGR) * 255
+            image = image.astype(np.uint8)
         return image, bboxes
 
     def create_new_img(self, annotation):
@@ -123,8 +122,7 @@ class Dataset(object):
             image_data = np.array(image_data)
             box_data = np.array(box_data)
             y_true = self.preprocess_true_boxes(box_data)
-            yield [image_data, *y_true]  , np.zeros(self.batch_size)
-
+            yield [image_data, *y_true], np.zeros(self.batch_size)
 
     def preprocess_true_boxes(self, true_boxes):
         assert (true_boxes[..., 4] < self.num_classes).all(), '种类错误'
